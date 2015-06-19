@@ -6,3 +6,6 @@ authors = ["whitequark <whitequark@whitequark.org>"]
 [dependencies]
 libc = "*"
 bitflags = "*"
+
+[dependencies.fourcc]
+git = "git://github.com/whitequark/fourcc"
