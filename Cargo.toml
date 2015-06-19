@@ -1,0 +1,8 @@
+[package]
+name = "touptek"
+version = "0.1.0"
+authors = ["whitequark <whitequark@whitequark.org>"]
+
+[dependencies]
+libc = "*"
+bitflags = "*"
