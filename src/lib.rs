@@ -516,11 +516,12 @@ macro_rules! property {
 
 /* API wrapper */
 
-pub struct Toupcam {
-    handle : *mut Handle
+pub struct Toupcam<'a> {
+    handle  : *mut Handle,
+    handler : std::marker::PhantomData<&'a FnMut(Event)>
 }
 
-impl Toupcam {
+impl<'a> Toupcam<'a> {
     pub fn version() -> &'static str {
         unsafe { unmarshal_static_string(Toupcam_Version()) }
     }
@@ -570,7 +571,10 @@ impl Toupcam {
         if handle.is_null() {
             panic!("toupcam: camera {:?} not found", unique_id)
         }
-        Toupcam { handle: handle }
+        Toupcam {
+            handle: handle,
+            handler: std::marker::PhantomData
+        }
     }
 
     pub fn serial_number(&self) -> String {
@@ -589,14 +593,16 @@ impl Toupcam {
         }
     }
 
-    pub fn start<'a, F>(&'a self, f: F) where F: 'a + FnMut(Event) {
+    pub fn start<F, G>(&self, event_handler: F, mut body: G) where F: FnMut(Event), G: FnMut() {
         extern fn wrapper<F>(event: Event, closure: *mut c_void) where F: FnMut(Event) {
             unsafe { (*(closure as *mut F))(event) }
         }
 
         unsafe {
             accept(Toupcam_StartPullModeWithCallback(
-                        self.handle, wrapper::<F>, &f as *const _ as *mut c_void))
+                        self.handle, wrapper::<F>, &event_handler as *const _ as *mut c_void));
+            body();
+            accept(Toupcam_Stop(self.handle))
         }
     }
 
@@ -649,12 +655,6 @@ impl Toupcam {
                 bits: bits,
                 data: data
             }
-        }
-    }
-
-    pub fn stop(&self) {
-        unsafe {
-            accept(Toupcam_Stop(self.handle));
         }
     }
 
@@ -985,7 +985,7 @@ impl Toupcam {
     // Unclear what the lifetime of the callback should be, or when it is called.
 }
 
-impl Drop for Toupcam {
+impl<'a> Drop for Toupcam<'a> {
     fn drop(&mut self) {
         unsafe {
             Toupcam_Close(self.handle)
@@ -993,7 +993,7 @@ impl Drop for Toupcam {
     }
 }
 
-pub fn clarity_factor(image: Image) -> f64 {
+pub fn clarity_factor(image: &Image) -> f64 {
     unsafe {
         Toupcam_calc_ClarityFactor(&image.data[0], image.bits as i32,
                                    image.resolution.width, image.resolution.height)
@@ -1027,13 +1027,21 @@ fn with_hardware() {
     cam.start(|event| {
         println!("event: {:?}", event);
         match event {
-            Event::IMAGE => {
-                println!("captured: {:?}", cam.pull_image(8));
+            Event::Image => {
+                let mut image = cam.pull_image(8);
+                println!("clarity: {:?}", clarity_factor(&image));
+                image.data.truncate(100);
+                println!("captured: {:?}", image);
+            },
+            Event::StillImage => {
+                let mut image = cam.pull_still_image(8);
+                image.data.truncate(100);
+                println!("captured: {:?}", image);
             },
             _ => ()
         }
+    }, || {
+        cam.snap_index(cam.preview_size_index());
+        std::thread::sleep_ms(1000);
     });
-    let size = cam.preview_size_index();
-    cam.snap_index(size);
-    std::thread::sleep_ms(1000);
 }
