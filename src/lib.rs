@@ -1,4 +1,3 @@
-#![allow(dead_code, non_camel_case_types)]
 #![feature(collections,plugin)]
 #![plugin(fourcc)]
 
@@ -16,7 +15,7 @@ use libc::{c_void, c_char, c_uchar, c_short, c_ushort, c_int, c_uint, c_double};
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[must_use]
-#[allow(overflowing_literals)]
+#[allow(overflowing_literals, non_camel_case_types)]
 enum HRESULT {
     S_OK         = 0x00000000, /* Operation successful */
     S_FALSE      = 0x00000001, /* Operation successful */
@@ -55,31 +54,31 @@ bitflags! {
 #[repr(u32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Event {
-    EXPOSURE        = 0x0001, /* exposure time changed */
-    TEMPTINT        = 0x0002, /* white balance changed, Temp/Tint mode */
-    CHROME          = 0x0003, /* reversed, do not use it */
-    IMAGE           = 0x0004, /* live image arrived, use Toupcam_PullImage to get this image */
-    STILLIMAGE      = 0x0005, /* snap (still) frame arrived, use Toupcam_PullStillImage to get this frame */
-    WBGAIN          = 0x0006, /* white balance changed, RGB Gain mode */
-    ERROR           = 0x0080, /* something error happens */
-    DISCONNECTED    = 0x0081  /* camera disconnected */
+    Exposure        = 0x0001, /* exposure time changed */
+    TempTint        = 0x0002, /* white balance changed, Temp/Tint mode */
+    Chrome          = 0x0003, /* reversed, do not use it */
+    Image           = 0x0004, /* live image arrived, use Toupcam_PullImage to get this image */
+    StillImage      = 0x0005, /* snap (still) frame arrived, use Toupcam_PullStillImage to get this frame */
+    WBGain          = 0x0006, /* white balance changed, RGB Gain mode */
+    Error           = 0x0080, /* something error happens */
+    Disconnected    = 0x0081  /* camera disconnected */
 }
 
 #[repr(u32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Option {
-    NOFRAME_TIMEOUT = 0x01,    /* iValue: 1 = enable; 0 = disable. default: enable */
-    THREAD_PRIORITY = 0x02,    /* set the priority of the internal thread which grab data from the usb device. iValue: 0 = THREAD_PRIORITY_NORMAL; 1 = THREAD_PRIORITY_ABOVE_NORMAL; 2 = THREAD_PRIORITY_HIGHEST; default: 0; see: msdn SetThreadPriority */
-    PROCESSMODE     = 0x03,    /* 0 = better image quality, more cpu usage. this is the default value
+    NoFrameTimeout  = 0x01,    /* iValue: 1 = enable; 0 = disable. default: enable */
+    ThreadPriority  = 0x02,    /* set the priority of the internal thread which grab data from the usb device. iValue: 0 = THREAD_PRIORITY_NORMAL; 1 = THREAD_PRIORITY_ABOVE_NORMAL; 2 = THREAD_PRIORITY_HIGHEST; default: 0; see: msdn SetThreadPriority */
+    ProcessMode     = 0x03,    /* 0 = better image quality, more cpu usage. this is the default value
                                          1 = lower image quality, less cpu usage */
-    RAW             = 0x04,    /* raw mode, read the sensor data. This can be set only BEFORE Toupcam_StartXXX() */
-    HISTOGRAM       = 0x05,    /* 0 = only one, 1 = continue mode */
-    BITDEPTH        = 0x06,    /* 0 = 8bits mode, 1 = 16bits mode */
-    FAN             = 0x07,    /* 0 = turn off the cooling fan, 1 = turn on the cooling fan */
-    COOLER          = 0x08,    /* 0 = turn off cooler, 1 = turn on cooler */
-    LINEAR          = 0x09,    /* 0 = turn off tone linear, 1 = turn on tone linear */
-    CURVE           = 0x0a,    /* 0 = turn off tone curve, 1 = turn on tone curve */
-    TRIGGER         = 0x0b,    /* 0 = continuous mode, 1 = trigger mode, default value = 0 */
+    Raw             = 0x04,    /* raw mode, read the sensor data. This can be set only BEFORE Toupcam_StartXXX() */
+    Histogram       = 0x05,    /* 0 = only one, 1 = continue mode */
+    BitDepth        = 0x06,    /* 0 = 8bits mode, 1 = 16bits mode */
+    Fan             = 0x07,    /* 0 = turn off the cooling fan, 1 = turn on the cooling fan */
+    Cooler          = 0x08,    /* 0 = turn off cooler, 1 = turn on cooler */
+    Linear          = 0x09,    /* 0 = turn off tone linear, 1 = turn on tone linear */
+    Curve           = 0x0a,    /* 0 = turn off tone curve, 1 = turn on tone curve */
+    Trigger         = 0x0b,    /* 0 = continuous mode, 1 = trigger mode, default value = 0 */
     RGB48           = 0x0c     /* enable RGB48 format when bitdepth > 8 */
 }
 
@@ -133,8 +132,8 @@ pub struct Range<T> {
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(i32)]
 pub enum Flicker {
-        AC_60Hz         = 0,
-        AC_50Hz         = 1,
+        AC60Hz          = 0,
+        AC50Hz          = 1,
         DC              = 2,
 }
 
@@ -220,6 +219,7 @@ struct Handle;
 /* FFI functions */
 
 #[link(name = "toupcam")]
+#[allow(dead_code)]
 extern {
     fn Toupcam_Version() -> *const c_char;
 
@@ -400,11 +400,6 @@ fn accept(result: HRESULT) {
 fn accept_u32(result: HRESULT) -> u32 {
     accept(result);
     result as u32
-}
-
-fn accept_bool(result: HRESULT) -> bool {
-    accept(result);
-    result == HRESULT::S_OK
 }
 
 unsafe fn unmarshal_static_string(buf: *const c_char) -> &'static str {
@@ -964,25 +959,25 @@ impl Toupcam {
     }
 
     property!(bool option, is_noframe_timeout_enabled, set_noframe_timeout_enabled,
-                           Option::NOFRAME_TIMEOUT);
+                           Option::NoFrameTimeout);
     property!(bool option, is_high_quality_enabled, set_high_quality_enabled,
-                           Option::PROCESSMODE);
+                           Option::ProcessMode);
     property!(bool option, is_raw_capture_enabled, set_raw_capture_enabled,
-                           Option::RAW);
+                           Option::Raw);
     property!(bool option, is_continuous_histogram_enabled, set_continuous_histogram_enabled,
-                           Option::HISTOGRAM);
+                           Option::Histogram);
     property!(bool option, is_16_bit_depth_enabled, set_16_bit_depth_enabled,
-                           Option::BITDEPTH);
+                           Option::BitDepth);
     property!(bool option, is_fan_enabled, set_fan_enabled,
-                           Option::FAN);
+                           Option::Fan);
     property!(bool option, is_cooler_enabled, set_cooler_enabled,
-                           Option::COOLER);
+                           Option::Cooler);
     property!(bool option, is_linear_tone_enabled, set_linear_tone_enabled,
-                           Option::LINEAR);
+                           Option::Linear);
     property!(bool option, is_curve_tone_enabled, set_curve_tone_enabled,
-                           Option::CURVE);
+                           Option::Curve);
     property!(bool option, is_trigger_mode_enabled, set_trigger_mode_enabled,
-                           Option::TRIGGER);
+                           Option::Trigger);
     property!(bool option, is_rgb48_format_enabled, set_rgb48_format_enabled,
                            Option::RGB48);
 
@@ -998,7 +993,7 @@ impl Drop for Toupcam {
     }
 }
 
-fn clarity_factor(image: Image) -> f64 {
+pub fn clarity_factor(image: Image) -> f64 {
     unsafe {
         Toupcam_calc_ClarityFactor(&image.data[0], image.bits as i32,
                                    image.resolution.width, image.resolution.height)
