@@ -1,4 +1,4 @@
-#![feature(collections,plugin)]
+#![feature(collections, plugin, slice_position_elem)]
 #![plugin(fourcc)]
 
 //! See [Toupcam](struct.Toupcam.html).

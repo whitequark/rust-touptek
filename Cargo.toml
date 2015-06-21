@@ -5,7 +5,7 @@ authors = ["whitequark <whitequark@whitequark.org>"]
 
 [dependencies]
 libc = "*"
-bitflags = "*"
+bitflags = "0.2"
 
 [dependencies.fourcc]
 git = "git://github.com/rust-lang/fourcc"
