@@ -8,4 +8,4 @@ libc = "*"
 bitflags = "*"
 
 [dependencies.fourcc]
-git = "git://github.com/whitequark/fourcc"
+git = "git://github.com/rust-lang/fourcc"
