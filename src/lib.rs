@@ -534,11 +534,18 @@ impl<'a> Toupcam<'a> {
             unsafe { (*(sender as *const SyncSender<()>)).send(()).unwrap() }
         }
 
+        struct Guard;
+        impl Drop for Guard {
+            fn drop(&mut self) {
+                unsafe { Toupcam_HotPlug(None, null_mut()) }
+            }
+        }
+
         unsafe {
             let (tx, rx) = sync_channel(0);
             Toupcam_HotPlug(Some (wrapper), &tx as *const _ as *mut c_void);
-            body(&rx);
-            Toupcam_HotPlug(None, null_mut())
+            let _guard = Guard;
+            body(&rx)
         }
     }
 
@@ -604,12 +611,22 @@ impl<'a> Toupcam<'a> {
             unsafe { (*(sender as *const SyncSender<Event>)).send(event).unwrap() }
         }
 
+        struct Guard {
+            handle: *mut Handle,
+        }
+        impl Drop for Guard {
+            fn drop(&mut self) {
+                // ignore errors in a destructor
+                unsafe { let _ = Toupcam_Stop(self.handle); }
+            }
+        }
+
         unsafe {
             let (tx, rx) = sync_channel(10); // at least 3, for initial exposure events
             accept(Toupcam_StartPullModeWithCallback(
                         self.handle, wrapper, &tx as *const _ as *mut c_void));
-            body(&rx);
-            accept(Toupcam_Stop(self.handle))
+            let _guard = Guard { handle: self.handle };
+            body(&rx)
         }
     }
 
