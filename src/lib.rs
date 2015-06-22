@@ -423,7 +423,7 @@ macro_rules! property {
             unsafe {
                 let mut value = 0;
                 accept($raw_reader(self.handle, &mut value));
-                value == 0
+                value == 1
             }
         }
 
@@ -506,7 +506,7 @@ macro_rules! property {
             unsafe {
                 let mut value = 0;
                 accept(Toupcam_get_Option(self.handle, $option, &mut value));
-                value == 0
+                value == 1
             }
         }
 
@@ -621,7 +621,7 @@ impl<'a> Toupcam<'a> {
         } else {
             match bits {
                 24 => DIBWIDTHBYTES(24 * width) * height,
-                32 => 32 * width * height,
+                32 => width * height * 4,
                 48 => DIBWIDTHBYTES(48 * width) * height,
                 8  => DIBWIDTHBYTES(8 * width) * height,
                 _  => unreachable!()
