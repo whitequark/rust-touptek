@@ -225,7 +225,8 @@ struct Handle;
 extern {
     fn Toupcam_Version() -> *const c_char;
 
-    fn Toupcam_HotPlug(pHotPlugCallback: extern fn(*mut c_void), pCallbackCtx: *mut c_void);
+    fn Toupcam_HotPlug(pHotPlugCallback: std::option::Option<extern fn(*mut c_void)>,
+                       pCallbackCtx: *mut c_void);
 
     fn Toupcam_Enum(pti: *mut [InstanceInternal; 16]) -> c_uint;
     fn Toupcam_Open(id: *const c_char) -> *mut Handle;
@@ -528,13 +529,16 @@ impl<'a> Toupcam<'a> {
         unsafe { unmarshal_static_string(Toupcam_Version()) }
     }
 
-    pub fn set_hotplug_handler<F>(f: &'static F) where F: Fn() {
-        extern fn wrapper<F>(closure: *mut c_void) where F: Fn() {
-            unsafe { (*(closure as *mut F))() }
+    pub fn hotplug<F>(mut body: F) where F: FnMut(&Receiver<()>) {
+        extern fn wrapper(sender: *mut c_void) {
+            unsafe { (*(sender as *const SyncSender<()>)).send(()).unwrap() }
         }
 
         unsafe {
-            Toupcam_HotPlug(wrapper::<F>, &f as *const _ as *mut c_void)
+            let (tx, rx) = sync_channel(0);
+            Toupcam_HotPlug(Some (wrapper), &tx as *const _ as *mut c_void);
+            body(&rx);
+            Toupcam_HotPlug(None, null_mut())
         }
     }
 
