@@ -1,4 +1,4 @@
-#![feature(collections, plugin, slice_position_elem)]
+#![feature(plugin, slice_position_elem)]
 #![plugin(fourcc)]
 
 //! See [Toupcam](struct.Toupcam.html).
@@ -11,11 +11,12 @@ use std::str;
 use std::ffi::CStr;
 use std::ptr::{null, null_mut};
 use libc::{c_void, c_char, c_uchar, c_short, c_ushort, c_int, c_uint, c_double};
+use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
 
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[must_use]
-#[allow(overflowing_literals, non_camel_case_types)]
+#[allow(overflowing_literals, non_camel_case_types, dead_code)]
 enum HRESULT {
     S_OK         = 0x00000000, /* Operation successful */
     S_FALSE      = 0x00000001, /* Operation successful */
@@ -66,6 +67,7 @@ pub enum Event {
 
 #[repr(u32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[allow(dead_code)]
 enum Option {
     NoFrameTimeout  = 0x01,    /* iValue: 1 = enable; 0 = disable. default: enable */
     ThreadPriority  = 0x02,    /* set the priority of the internal thread which grab data from the usb device. iValue: 0 = THREAD_PRIORITY_NORMAL; 1 = THREAD_PRIORITY_ABOVE_NORMAL; 2 = THREAD_PRIORITY_HIGHEST; default: 0; see: msdn SetThreadPriority */
@@ -593,15 +595,16 @@ impl<'a> Toupcam<'a> {
         }
     }
 
-    pub fn start<F, G>(&self, event_handler: F, mut body: G) where F: FnMut(Event), G: FnMut() {
-        extern fn wrapper<F>(event: Event, closure: *mut c_void) where F: FnMut(Event) {
-            unsafe { (*(closure as *mut F))(event) }
+    pub fn start<F>(&self, mut body: F) where F: FnMut(&Receiver<Event>) {
+        extern fn wrapper(event: Event, sender: *mut c_void) {
+            unsafe { (*(sender as *const SyncSender<Event>)).send(event).unwrap() }
         }
 
         unsafe {
+            let (tx, rx) = sync_channel(10); // at least 3, for initial exposure events
             accept(Toupcam_StartPullModeWithCallback(
-                        self.handle, wrapper::<F>, &event_handler as *const _ as *mut c_void));
-            body();
+                        self.handle, wrapper, &tx as *const _ as *mut c_void));
+            body(&rx);
             accept(Toupcam_Stop(self.handle))
         }
     }
@@ -1024,24 +1027,26 @@ fn with_hardware() {
     println!("horizontal flip: {:?} vertical flip: {:?} negated: {:?}",
              cam.is_flipped_horizontally(), cam.is_flipped_vertically(), cam.is_negated());
     println!("level ranges: {:?}", cam.level_ranges());
-    cam.start(|event| {
-        println!("event: {:?}", event);
-        match event {
-            Event::Image => {
-                let mut image = cam.pull_image(8);
-                println!("clarity: {:?}", clarity_factor(&image));
-                image.data.truncate(100);
-                println!("captured: {:?}", image);
-            },
-            Event::StillImage => {
-                let mut image = cam.pull_still_image(8);
-                image.data.truncate(100);
-                println!("captured: {:?}", image);
-            },
-            _ => ()
-        }
-    }, || {
+    cam.start(|eventrx| {
         cam.snap_index(cam.preview_size_index());
-        std::thread::sleep_ms(1000);
+
+        for _ in 0..10 {
+            let event = eventrx.recv().unwrap();
+            println!("event: {:?}", event);
+            match event {
+                Event::Image => {
+                    let mut image = cam.pull_image(8);
+                    println!("clarity: {:?}", clarity_factor(&image));
+                    image.data.truncate(100);
+                    println!("captured: {:?}", image);
+                },
+                Event::StillImage => {
+                    let mut image = cam.pull_still_image(8);
+                    image.data.truncate(100);
+                    println!("captured: {:?}", image);
+                },
+                _ => ()
+            }
+        }
     });
 }
