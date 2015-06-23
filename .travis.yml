@@ -1,0 +1,11 @@
+sudo: required
+language: rust
+rust: nightly
+env:
+  global:
+    - secure: l25j4i1hIYkA0dDbxMhDLa8bVmnKjHS+qiWp8XGeXK/4dQg5gZJWXkUocjM3/2dt/6MZ+mUfxNFiKvUIwAHbHfAQJ6JFzvU4EfygDP0k49LdO/Mjl9DhqmuFCK/yiE7kHnrjl4D5ttaqblVDwWA8iM02Qcx9znFmMkYBYBx136pldgqFPN57wg6rnCc1SBRQ15DO4FKPJGLVuAbOneDaOyKpMONB0bqWVgOlB7JzVcKjJIRUZPhwxOpmNu6w10PTw9/gIj0VH27wMsfz/9SvLMRLm2rNytIQrFuZCtrb58RYWqE0gEEe4LcqSv7v2JZ9bSHXWntbe/Bx/QwD9jYsO4MLH2i4mVEKK9S9vCfMk7jZmDIs7c6gzv1h8qIdsWPoLfmNckM5LEeEVQtJrrZzT/oSbqbRqr38SOqpDmJdwfHPb/2DUraPbcNf6LP2I8Q4xPRVP83K/f7CsVeT3/b8/kIRDSUWc1Gg6MvdX2ymd9FivsTfcr1oJPJh4AIixVHjB+VK63tCuuPoQiYXZTypiL9ieoSB4iUdbOL7BDBb0A2EwC+PCpxMg4ucu5A30rWdRzC9sjWtr3ZTLzhc5tkWf4KbepnjX+rlPJUIAy8h+Xx07Wr2wIEDLlzQie9dZjpI7jW58Lzw4CBEzHbUWyoACKIAjmWuqc7akOzHOldZ6iY=
+script:
+  - cargo build --verbose
+  - cargo doc --verbose
+after_script:
+  - cd target; curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
