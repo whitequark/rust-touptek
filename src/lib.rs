@@ -8,10 +8,11 @@ extern crate libc;
 extern crate bitflags;
 
 use std::str;
-use std::ffi::CStr;
 use std::ptr::{null, null_mut};
+use std::sync::mpsc::{sync_channel, channel, SyncSender, Receiver};
+use std::thread;
+use std::ffi::CStr;
 use libc::{c_void, c_char, c_uchar, c_short, c_ushort, c_int, c_uint, c_double};
-use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
 
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -541,12 +542,10 @@ impl<'a> Toupcam<'a> {
             }
         }
 
-        unsafe {
-            let (tx, rx) = sync_channel(0);
-            Toupcam_HotPlug(Some (wrapper), &tx as *const _ as *mut c_void);
-            let _guard = Guard;
-            body(&rx)
-        }
+        let (tx, rx) = sync_channel(0);
+        unsafe { Toupcam_HotPlug(Some (wrapper), &tx as *const _ as *mut c_void) };
+        let _guard = Guard;
+        body(&rx)
     }
 
     pub fn enumerate() -> Vec<Instance> {
@@ -608,26 +607,40 @@ impl<'a> Toupcam<'a> {
 
     pub fn start<F>(&self, mut body: F) where F: FnMut(&Receiver<Event>) {
         extern fn wrapper(event: Event, sender: *mut c_void) {
-            unsafe { (*(sender as *const SyncSender<Event>)).send(event).unwrap() }
+            unsafe { (*(sender as *const SyncSender<Event>)).try_send(event).unwrap() }
         }
 
-        struct Guard {
-            handle: *mut Handle,
-        }
+        struct Guard(*mut Handle);
         impl Drop for Guard {
             fn drop(&mut self) {
                 // ignore errors in a destructor
-                unsafe { let _ = Toupcam_Stop(self.handle); }
+                unsafe { let _ = Toupcam_Stop(self.0); }
             }
         }
 
-        unsafe {
-            let (tx, rx) = sync_channel(10); // at least 3, for initial exposure events
-            accept(Toupcam_StartPullModeWithCallback(
-                        self.handle, wrapper, &tx as *const _ as *mut c_void));
-            let _guard = Guard { handle: self.handle };
-            body(&rx)
-        }
+        let (sync_tx, sync_rx) = sync_channel(64); /* can't allocate inside the callback */
+        unsafe { accept(Toupcam_StartPullModeWithCallback(
+                                self.handle, wrapper, &sync_tx as *const _ as *mut c_void)) };
+        let _guard = Guard(self.handle);
+
+        let (tx, rx) = channel();
+        thread::Builder::new()
+            .name(String::from("touptek::start() proxy"))
+            .spawn(move || {
+                loop {
+                    match sync_rx.recv() {
+                        Err(_) => break,
+                        Ok(value) => {
+                            match tx.send(value) {
+                                Err(_) => break,
+                                Ok(_) => ()
+                            }
+                        }
+                    }
+                }
+            })
+            .unwrap();
+        body(&rx)
     }
 
     fn buffer_size(&self, bits: u32, width: u32, height: u32) -> usize {
