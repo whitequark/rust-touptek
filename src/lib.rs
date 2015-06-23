@@ -520,12 +520,11 @@ macro_rules! property {
 
 /* API wrapper */
 
-pub struct Toupcam<'a> {
-    handle  : *mut Handle,
-    handler : std::marker::PhantomData<&'a FnMut(Event)>
+pub struct Toupcam {
+    handle: *mut Handle
 }
 
-impl<'a> Toupcam<'a> {
+impl Toupcam {
     pub fn version() -> &'static str {
         unsafe { unmarshal_static_string(Toupcam_Version()) }
     }
@@ -573,7 +572,7 @@ impl<'a> Toupcam<'a> {
         instances
     }
 
-    pub fn open(unique_id: std::option::Option<&str>) -> Toupcam {
+    pub fn open(unique_id: std::option::Option<&str>) -> std::option::Option<Toupcam> {
         let id =
             match unique_id {
                 None => null(),
@@ -581,11 +580,9 @@ impl<'a> Toupcam<'a> {
             };
         let handle = unsafe { Toupcam_Open(id) };
         if handle.is_null() {
-            panic!("toupcam: camera {:?} not found", unique_id)
-        }
-        Toupcam {
-            handle: handle,
-            handler: std::marker::PhantomData
+            None
+        } else {
+            Some(Toupcam { handle: handle })
         }
     }
 
@@ -1022,7 +1019,7 @@ impl<'a> Toupcam<'a> {
     // Unclear what the lifetime of the callback should be, or when it is called.
 }
 
-impl<'a> Drop for Toupcam<'a> {
+impl Drop for Toupcam {
     fn drop(&mut self) {
         unsafe {
             Toupcam_Close(self.handle)
@@ -1045,7 +1042,7 @@ fn without_hardware() {
 
 #[test]
 fn with_hardware() {
-    let cam = Toupcam::open(None);
+    let cam = Toupcam::open(None).unwrap();
     println!("serial: {:?}", cam.serial_number());
     println!("production date: {:?}", cam.production_date());
     println!("preview size: {:?}", cam.preview_size());
