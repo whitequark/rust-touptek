@@ -1,7 +1,12 @@
 [package]
 name = "touptek"
-version = "0.1.0"
+version = "1.0.0"
+description = "Bindings for Touptek image acquisition library"
 authors = ["whitequark <whitequark@whitequark.org>"]
+repository = "https://github.com/whitequark/rust-touptek"
+keywords = ["library", "bindings", "hardware", "image processing", "science"]
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 libc = "*"
