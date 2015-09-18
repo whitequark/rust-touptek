@@ -5,7 +5,7 @@ description = "Bindings for Touptek ToupLite image acquisition library"
 authors = ["whitequark <whitequark@whitequark.org>"]
 repository = "https://github.com/whitequark/rust-touptek"
 documentation = "http://www.rust-ci.org/whitequark/rust-touptek/doc/touptek/"
-keywords = ["library", "bindings", "hardware", "image processing", "science"]
+keywords = ["library", "bindings", "hardware", "image-processing", "science"]
 readme = "README.md"
 license = "MIT"
 
