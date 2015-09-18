@@ -1,4 +1,4 @@
-#![feature(plugin, slice_position_elem)]
+#![feature(plugin)]
 #![plugin(fourcc)]
 
 //! See [Toupcam](struct.Toupcam.html).
@@ -216,8 +216,7 @@ pub struct Instance
     pub model           : Model,
 }
 
-#[repr(C)]
-struct Handle;
+type Handle = c_void;
 
 /* FFI functions */
 
@@ -781,7 +780,7 @@ impl Toupcam {
     }
 
     pub fn snap(&self, res: Resolution) {
-        let index = self.still_resolutions().position_elem(&res).unwrap();
+        let index = self.still_resolutions().iter().position(|r| *r == res).unwrap();
         self.snap_index(index)
     }
 
