@@ -1,6 +1,3 @@
-#![feature(plugin)]
-#![plugin(fourcc)]
-
 //! See [Toupcam](struct.Toupcam.html).
 
 extern crate libc;
@@ -102,12 +99,12 @@ pub struct Image {
 #[repr(u32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Layout {
-        GBRG            = fourcc!("GBRG"),
-        RGGB            = fourcc!("RGGB"),
-        BGGR            = fourcc!("BGGR"),
-        GRBG            = fourcc!("GRBG"),
-        YUYV            = fourcc!("YUYV"),
-        YYYY            = fourcc!("YYYY"),
+        GBRG            = 0x47524247,
+        RGGB            = 0x42474752,
+        BGGR            = 0x52474742,
+        GRBG            = 0x47425247,
+        YUYV            = 0x56595559,
+        YYYY            = 0x59595959,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
