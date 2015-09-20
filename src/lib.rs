@@ -661,9 +661,13 @@ impl Toupcam {
             let (mut width, mut height) = std::mem::zeroed();
             accept(Toupcam_PullImage(self.handle, null_mut(), bits as i32,
                                      &mut width, &mut height));
-            let mut data = vec![0; self.buffer_size(bits, width, height)];
+
+            let data_size = self.buffer_size(bits, width, height);
+            let mut data: Vec<u8> = Vec::with_capacity(data_size);
             accept(Toupcam_PullImage(self.handle, data.as_mut_ptr(), bits as i32,
                                      null_mut(), null_mut()));
+            data.set_len(data_size);
+
             Image {
                 resolution: Resolution { width: width, height: height },
                 bits: bits,
