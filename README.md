@@ -29,25 +29,22 @@ Capture some pictures:
 extern crate touptek;
 
 fn main() {
-    let cam = touptek::Toupcam::open(None);
-    cam.start(
-        |event| {
-            match event {
+    let cam = touptek::Toupcam::open(None).
+                                expect("Need a connected camera!");
+    cam.start(|event_rx| {
+        loop {
+            match event_rx.recv().unwrap() {
                 touptek::Event::Image => {
                     let image = cam.pull_image(8);
                     println!("captured a {}x{} image",
-                             image.width, image.height);
+                             image.resolution.width, image.resolution.height);
                     println!("first pixel: r {} g {} b {}",
                              image.data[0], image.data[1], image.data[2])
                 },
-                _ => ()
-            },
-        },
-        || {
-            // images will be captured until this closure returns
-            std::thread::sleep_ms(5000);
+                _ => break
+            }
         }
-    );
+    });
 }
 ```
 
