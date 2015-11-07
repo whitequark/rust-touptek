@@ -41,7 +41,8 @@ fn main() {
                     println!("first pixel: r {} g {} b {}",
                              image.data[0], image.data[1], image.data[2])
                 },
-                _ => break
+                touptek::Event::Disconnected => break,
+                _ => ()
             }
         }
     });
