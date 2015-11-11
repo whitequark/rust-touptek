@@ -12,3 +12,7 @@ license = "MIT"
 [dependencies]
 libc = "*"
 bitflags = "0.3"
+
+[dev-dependencies]
+png  = { git = "https://github.com/servo/rust-png" }
+simd = { git = "https://github.com/huonw/simd" }
